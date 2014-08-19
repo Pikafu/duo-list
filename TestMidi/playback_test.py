@@ -13,7 +13,7 @@ if __name__ == "__main__":
             print(msg)
             msg_type = localmidi.get_msg_type(msg)
 
-            if msg_type == localmidi.n_on_off:
+            if msg_type == localmidi.ON_OFF:
                 localmidi.midi_out.send_message([msg[0], msg[1] + 3, msg[2]])
             else:
                 localmidi.midi_out.send_message(msg)
