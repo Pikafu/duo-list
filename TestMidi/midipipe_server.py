@@ -21,6 +21,6 @@ if __name__ == "__main__":
         msg_in_bytes = conn.recv(msg_max_length)
 
         if msg_in_bytes:
-            msg = memoryview(data).tolist()
+            msg = memoryview(msg_in_bytes).tolist()
             print(msg)
         #if not data: break
