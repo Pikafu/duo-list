@@ -17,7 +17,7 @@ if __name__ == "__main__":
     localmidi.setup_local_midi()
 
     while True:
-        msg, delta_time = localmidi.midi_in.get_message()
+        msg, delta_time = localmidi.MIDI_IN.get_message()
         if msg:
             msg_in_bytes = bytearray(msg)
             s.sendall(msg_in_bytes)
