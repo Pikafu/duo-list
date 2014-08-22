@@ -1,10 +1,12 @@
 # Echo server program
 import socket
+
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'LocalMidi'))
 from LocalMidi import LocalMidi
 
 HOST = ''                 # Symbolic name meaning all available interfaces
 PORT = 3000               # Arbitrary non-privileged port
-localmidi = LocalMidi.LocalMidi()
 
 # TCP Packets
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,7 +19,7 @@ if __name__ == "__main__":
     while True:
         # Handles messages of varying payload sizes
         startbyte = conn.recv(1)
-        msg_type, msg_max_length = localmidi.get_msg_info(startbyte)
+        msg_type, msg_max_length = LocalMidi.LocalMidi.get_msg_info(startbyte)
         msg_in_bytes = conn.recv(msg_max_length)
 
         if msg_in_bytes:
