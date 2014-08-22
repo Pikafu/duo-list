@@ -1,6 +1,8 @@
 """ Verifies local MIDI receive/transmit """
 __author__ = 'John Fu, Pedro Rittner. 2014.'
 
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'LocalMidi'))
 from LocalMidi import LocalMidi
 
 if __name__ == "__main__":
