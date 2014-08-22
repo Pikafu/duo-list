@@ -3,7 +3,7 @@ import socket
 from LocalMidi import LocalMidi
 
 # Copy public DNS here
-AMAZON_DNS = "ec2-54-201-111-7.us-west-2.compute.amazonaws.com"
+AMAZON_DNS = 'ec2-54-200-119-164.us-west-2.compute.amazonaws.com'
 HOST = socket.gethostbyname(AMAZON_DNS)
 #HOST = "localhost"
 PORT = 3000              # The same port as used by the server

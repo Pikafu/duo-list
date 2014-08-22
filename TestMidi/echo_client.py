@@ -2,7 +2,7 @@
 import socket
 
 # Copy public DNS here
-HOST = socket.gethostbyname('ec2-54-191-68-77.us-west-2.compute.amazonaws.com') #Translate a host name to IPv4 address format.
+HOST = socket.gethostbyname('ec2-54-200-119-164.us-west-2.compute.amazonaws.com') #Translate a host name to IPv4 address format.
 #HOST = 'localhost'
 PORT = 3000              # The same port as used by the server
 message = bytes('Hello, World', 'utf-8')
