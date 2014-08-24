@@ -4,7 +4,7 @@ __author__ = 'John Fu, Pedro Rittner. 2014.'
 import rtmidi_python as rtmidi
 
 
-class LocalMidi:
+class KeyboardMidi:
     def __init__(self):
         self.ON_OFF = 'Note ON/OFF'
         self.C_CHG = 'Control Change'
