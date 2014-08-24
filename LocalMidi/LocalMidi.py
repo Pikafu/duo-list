@@ -1,5 +1,5 @@
 """ Methods for local MIDI transmission and reception. """
-__author__ = 'John Fu, Pedro Rittner. 2014.'
+__author__ = 'John Fu, 2014.'
 
 import rtmidi_python as rtmidi
 
