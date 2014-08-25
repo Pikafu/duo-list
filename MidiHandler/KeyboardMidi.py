@@ -12,7 +12,7 @@ class LocalMidi:
         self.P_BEND_CHG = 'Pitch Bend Change'
         self.SYSEX_MSG = 'System Exclusive Message'
         self.EMU = 'E-MU'                           # Starting characters of MIDI to USB interface
-        self.ON_OFF_RANGE = range(0x80, 0xA0)       # All possible MIDI note on/off channels
+        self.ON_OFF_RANGE = range(0x80, 0x90)       # All possible MIDI note on/off channels
         self.C_CHG_RANGE = range(0xB0, 0xC0)        # Same for control change channels
         self.P_CHG_RANGE = range(0xC0, 0xD0)
         self.P_BEND_RANGE = range(0xE0, 0xF0)
@@ -22,20 +22,19 @@ class LocalMidi:
         self.MIDI_OUT = rtmidi.MidiOut()
         self.MIDI_IN = rtmidi.MidiIn()
 
-    # Returns [length of message, payload length] based on the status byte received
-    # DOES NOT let sysex messages pass through to the server
-    def get_msg_info(self, status):
-        s = int.from_bytes(status, 'little')    # Decode bytes into int for comparison
-        if s in self.ON_OFF_RANGE:
-            return self.ON_OFF, self.NORMAL_MAX_PAYLOAD
-        elif s in self.C_CHG_RANGE:
-            return self.C_CHG, self.NORMAL_MAX_PAYLOAD
-        elif s in self.P_CHG_RANGE:
-            return self.P_CHG, self.NORMAL_MAX_PAYLOAD
-        elif s in self.P_BEND_RANGE:
-            return self.P_BEND_CHG, self.NORMAL_MAX_PAYLOAD
-        elif s is self.SYSEX_START:
-            return None
+    # Reads the status int (from an rtmidi message).
+    # If not a system exclusive message, return the type. Otherwise, return True.
+    def get_msg_type(self, status):
+        if status in self.ON_OFF_RANGE:
+            return self.ON_OFF
+        elif status in self.C_CHG_RANGE:
+            return self.C_CHG
+        elif status in self.P_CHG_RANGE:
+            return self.P_CHG
+        elif status in self.P_BEND_RANGE:
+            return self.P_BEND_CHG
+        elif status is self.SYSEX_START:
+            return self.SYSEX_MSG
 
     # Scans ports for E-MU MIDI to USB interface and then establishes
     # bi-directional communication between the digital keyboard and computer
