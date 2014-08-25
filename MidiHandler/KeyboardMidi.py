@@ -12,7 +12,7 @@ class LocalMidi:
         self.P_BEND_CHG = 'Pitch Bend Change'
         self.SYSEX_MSG = 'System Exclusive Message'
         self.EMU = 'E-MU'                           # Starting characters of MIDI to USB interface
-        self.ON_OFF_RANGE = range(0x80, 0x90)       # All possible MIDI note on/off channels
+        self.ON_OFF_RANGE = range(0x80, 0xA0)       # All possible MIDI note on/off channels
         self.C_CHG_RANGE = range(0xB0, 0xC0)        # Same for control change channels
         self.P_CHG_RANGE = range(0xC0, 0xD0)
         self.P_BEND_RANGE = range(0xE0, 0xF0)
