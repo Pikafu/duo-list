@@ -4,7 +4,7 @@ __author__ = 'John Fu, 2014.'
 import rtmidi_python as rtmidi
 
 
-class KeyboardMidi:
+class LocalMidi:
     def __init__(self):
         self.ON_OFF = 'Note ON/OFF'
         self.C_CHG = 'Control Change'
@@ -22,19 +22,19 @@ class KeyboardMidi:
         self.MIDI_OUT = rtmidi.MidiOut()
         self.MIDI_IN = rtmidi.MidiIn()
 
-    # Returns [length of message, payload length] based on the start byte received
-    def get_msg_info(self, startbyte):
-        if startbyte in self.ON_OFF_RANGE:
-            return [self.ON_OFF, self.NORMAL_MAX_PAYLOAD]
-        elif startbyte in self.C_CHG_RANGE:
-            return [self.C_CHG, self.NORMAL_MAX_PAYLOAD]
-        elif startbyte in self.P_CHG_RANGE:
-            return [self.P_CHG, self.NORMAL_MAX_PAYLOAD]
-        elif startbyte in self.P_BEND_RANGE:
-            return [self.P_BEND_CHG, self.NORMAL_MAX_PAYLOAD]
-        elif startbyte is self.SYSEX_START:
-            return [self.SYSEX_MSG, self.SYSEX_MAX_PAYLOAD]
-        else:
+    # Returns [length of message, payload length] based on the status byte received
+    # DOES NOT let sysex messages pass through to the server
+    def get_msg_info(self, status):
+        s = int.from_bytes(status, 'little')    # Decode bytes into int for comparison
+        if s in self.ON_OFF_RANGE:
+            return self.ON_OFF, self.NORMAL_MAX_PAYLOAD
+        elif s in self.C_CHG_RANGE:
+            return self.C_CHG, self.NORMAL_MAX_PAYLOAD
+        elif s in self.P_CHG_RANGE:
+            return self.P_CHG, self.NORMAL_MAX_PAYLOAD
+        elif s in self.P_BEND_RANGE:
+            return self.P_BEND_CHG, self.NORMAL_MAX_PAYLOAD
+        elif s is self.SYSEX_START:
             return None
 
     # Scans ports for E-MU MIDI to USB interface and then establishes
