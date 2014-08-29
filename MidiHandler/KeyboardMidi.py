@@ -19,8 +19,8 @@ class LocalMidi:
         self.SYSEX_START = 0xF0
         self.NORMAL_MAX_PAYLOAD = 3                 # Max payload size for note ON/OFF, control change, mode, and program change
         self.SYSEX_MAX_PAYLOAD = 12                 # Max payload size for system exclusive messages
-        self.MIDI_OUT = rtmidi.MidiOut()
-        self.MIDI_IN = rtmidi.MidiIn()
+        self.MIDI_OUT_CONN = rtmidi.MidiOut()
+        self.MIDI_IN_CONN = rtmidi.MidiIn()
 
     # Reads the status int (from an rtmidi message).
     # If not a system exclusive message, return the type. Otherwise, return True.
@@ -39,18 +39,18 @@ class LocalMidi:
     # Scans ports for E-MU MIDI to USB interface and then establishes
     # bi-directional communication between the digital keyboard and computer
     def setup_local_midi(self):
-        for port_in in self.MIDI_IN.ports:
+        for port_in in self.MIDI_IN_CONN.ports:
             if port_in.startswith(self.EMU.encode()):
                 try:
-                    self.MIDI_IN.open_port(port_in)
+                    self.MIDI_IN_CONN.open_port(port_in)
                 except ValueError:
                     print('Could not open port ' + port_in.decode())
                 else:
                     print('Connected to ' + port_in.decode())
-        for port_out in self.MIDI_OUT.ports:
+        for port_out in self.MIDI_OUT_CONN.ports:
             if port_out.startswith(self.EMU.encode()):
                 try:
-                    self.MIDI_OUT.open_port(port_out)
+                    self.MIDI_OUT_CONN.open_port(port_out)
                 except ValueError:
                     print('Could not open port ' + port_out.decode())
                 else:
