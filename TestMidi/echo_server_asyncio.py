@@ -1,17 +1,8 @@
 __author__ = 'John'
 import asyncio
-import socket
+from TestMidi.EC2 import EC2Server
 
 class EchoServer(asyncio.Protocol):
-
-    def __init__(self):
-        # IP of the server instance this code is running on
-        self.HOST = "localhost"
-        self.AMAZON_DNS = 'ec2-54-68-7-241.us-west-2.compute.amazonaws.com'
-        self.HOST = socket.gethostbyname(self.AMAZON_DNS)
-        self.PORT = 3001              # The same port as used by the server
-        self.transport = ""
-
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
         print('connection from {}'.format(peername))
@@ -23,9 +14,9 @@ class EchoServer(asyncio.Protocol):
         #close the socket
         self.transport.close()
 
-e = EchoServer()
+e = EC2Server()
 loop = asyncio.get_event_loop()
-coro = loop.create_server(e, e.HOST, e.PORT)
+coro = loop.create_server(EchoServer, e.HOST, e.PORT)
 server = loop.run_until_complete(coro)
 print('serving on {}'.format(server.sockets[0].getsockname()))
 
