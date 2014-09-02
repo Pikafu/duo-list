@@ -1,13 +1,14 @@
 __author__ = 'John'
 import asyncio
+import socket
 
 class EchoClient(asyncio.Protocol):
 
     def __init__(self):
         # IP of the server instance this code is running on
-        #AMAZON_DNS = 'ec2-54-68-7-241.us-west-2.compute.amazonaws.com'
-        selfHOST = socket.gethostbyname(AMAZON_DNS)
         #self.HOST = "localhost"
+        AMAZON_DNS = 'ec2-54-68-7-241.us-west-2.compute.amazonaws.com'
+        self.HOST = socket.gethostbyname(AMAZON_DNS)
         self.PORT = 3001              # The same port as used by the server
         self.message = "hey you, yea you, I'm talking to you"
 
