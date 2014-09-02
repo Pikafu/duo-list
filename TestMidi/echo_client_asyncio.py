@@ -7,8 +7,8 @@ class EchoClient(asyncio.Protocol):
     def __init__(self):
         # IP of the server instance this code is running on
         #self.HOST = "localhost"
-        AMAZON_DNS = 'ec2-54-68-7-241.us-west-2.compute.amazonaws.com'
-        self.HOST = socket.gethostbyname(AMAZON_DNS)
+        self.AMAZON_DNS = 'ec2-54-68-7-241.us-west-2.compute.amazonaws.com'
+        self.HOST = socket.gethostbyname(self.AMAZON_DNS)
         self.PORT = 3001              # The same port as used by the server
         self.message = "hey you, yea you, I'm talking to you"
 
@@ -23,7 +23,7 @@ class EchoClient(asyncio.Protocol):
         print('server close the connection')
         asyncio.get_event_loop().stop()
 
-c = EchoClient()
+c = EchoClient
 loop = asyncio.get_event_loop()
 coro = loop.create_connection(c, c.HOST, c.PORT)
 loop.run_until_complete(coro)
