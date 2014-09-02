@@ -1,6 +1,10 @@
 __author__ = 'John'
 import asyncio
-from TestMidi.EC2 import EC2Server
+import sys, os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from NetworkMidi.EC2 import EC2Server
+
 
 class EchoClient(asyncio.Protocol):
 

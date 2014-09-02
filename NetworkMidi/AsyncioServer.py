@@ -1,9 +1,14 @@
-import asyncio
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from TestMidi.EC2 import EC2Server
+""" Implements server functions. """
+__author__ = 'John Fu, 2014.'
 
-class EchoServer(asyncio.Protocol):
+import asyncio
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from NetworkMidi.EC2 import EC2Server
+
+class MidiServer(asyncio.Protocol):
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
         print('connection from {}'.format(peername))
@@ -17,7 +22,7 @@ class EchoServer(asyncio.Protocol):
 
 e = EC2Server()
 loop = asyncio.get_event_loop()
-coro = loop.create_server(EchoServer, e.HOST, e.PORT)
+coro = loop.create_server(MidiServer, e.HOST, e.PORT)
 server = loop.run_until_complete(coro)
 print('serving on {}'.format(server.sockets[0].getsockname()))
 
