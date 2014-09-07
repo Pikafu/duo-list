@@ -6,7 +6,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from NetworkMidi.EC2 import EC2Server
 from tornado.tcpserver import TCPServer
 from tornado import ioloop
-from tornado import iostream
 import socket
 
 
@@ -19,19 +18,23 @@ class MidiStream():
             address = ('0.0.0.0', 0)
         self.address = address
         self.server = server
+        self.read_from()
 
     def read_from(self):
-        print("in read_from")
-        self.stream.read_bytes(128, callback=self.send_back, partial=True)
+        #self.stream.read_bytes(16, callback=self.send_back, partial=True)
+        self.stream.read_bytes(16, callback=self.print_back, partial=True)
+
+    def print_back(self, data):
+        print("Received ", data)
 
     def send_back(self, data):
         print("Writing back", data)
         self.stream.write(data)
 
+
 class MidiServer(TCPServer):
     def handle_stream(self, stream, address):
-        s = MidiStream(stream, address, server=self)
-        s.read_from()
+        MidiStream(stream, address, server=self)
 
 io_loop = ioloop.IOLoop.instance()
 server = MidiServer()
