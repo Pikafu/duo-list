@@ -1,42 +1,60 @@
-""" Implements server functions. """
-__author__ = 'John Fu, 2014.'
-
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from MidiHandler.KeyboardMidi import LocalMidi
 from NetworkMidi.EC2 import EC2Server
-from tornado.tcpserver import TCPServer
-from tornado import ioloop
+import errno
+import functools
 import socket
+from tornado import ioloop, iostream
+ 
+ 
+class MidiConnection(object):
+    def __init__(self, connection):
+        self.stream = iostream.IOStream(connection)
+        self._read()
+ 
+    def _read(self):
+        self.stream.read_bytes(num_bytes=16, partial=True, callback=self._eol_callback)
+ 
+    def _eol_callback(self, data):
+        self.handle_data(data)
+ 
+ 
+def connection_ready(sock, fd, events):
+    while True:
+        try:
+            connection, address = sock.accept()
+        except OSError as e:
+            if e.errno not in (errno.EWOULDBLOCK, errno.EAGAIN):
+                raise
+            return
+        else:
+            connection.setblocking(0)
+            MidiClient(connection)
 
-
-class MidiStream():
-    def __init__(self, stream, address, server):
-        #Initialize base params and call stream reader for next line
-        self.stream = stream
-        if self.stream.socket.family not in (socket.AF_INET, socket.AF_INET6):
-            # Unix (or other) socket; fake the remote address
-            address = ('0.0.0.0', 0)
-        self.address = address
-        self.server = server
-        self.read_from()
-
-    def read_from(self):
-        #self.stream.read_bytes(16, callback=self.send_back, partial=True)
-        self.stream.read_bytes(16, callback=self.print_back, partial=True)
-
-    def print_back(self, data):
-        print("Received ", data)
-
-    def send_back(self, data):
-        print("Writing back", data)
-        self.stream.write(data)
-
-
-class MidiServer(TCPServer):
-    def handle_stream(self, stream, address):
-        MidiStream(stream, address, server=self)
-
-io_loop = ioloop.IOLoop.instance()
-server = MidiServer()
-server.listen(EC2Server.PORT, address="")
-io_loop.start()
+ 
+class MidiClient(MidiConnection):
+    """Put your app logic here"""
+    def handle_data(self, data):
+        print(data)
+        #self.stream.write(data)
+        self._read()
+ 
+ 
+if __name__ == '__main__':
+    
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setblocking(0)
+    sock.bind((EC2Server.HOST, EC2Server.PORT))
+    sock.listen(1)
+ 
+    io_loop = ioloop.IOLoop.instance()
+    callback = functools.partial(connection_ready, sock)
+    io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
+    
+    try:
+        io_loop.start()
+    except KeyboardInterrupt:
+        io_loop.stop()
+        print("exited cleanly")
