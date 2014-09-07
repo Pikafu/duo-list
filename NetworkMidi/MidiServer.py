@@ -18,8 +18,25 @@ class MidiConnection(object):
  
     def _eol_callback(self, data):
         self.handle_data(data)
- 
- 
+
+
+class MidiClient(MidiConnection):
+    """Put your app logic here"""
+    def handle_data(self, data):
+        print(data)
+        self.stream.write(data)
+        self._read()
+
+
+def setup_socket():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setblocking(0)
+    sock.bind((EC2Server.HOST, EC2Server.PORT))
+    sock.listen(1)
+    return sock
+
+
 def connection_ready(sock, fd, events):
     while True:
         try:
@@ -31,24 +48,10 @@ def connection_ready(sock, fd, events):
         else:
             connection.setblocking(0)
             MidiClient(connection)
-
- 
-class MidiClient(MidiConnection):
-    """Put your app logic here"""
-    def handle_data(self, data):
-        print(data)
-        #self.stream.write(data)
-        self._read()
  
  
 if __name__ == '__main__':
-    
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.setblocking(0)
-    sock.bind((EC2Server.HOST, EC2Server.PORT))
-    sock.listen(1)
- 
+    sock = setup_socket()
     io_loop = ioloop.IOLoop.instance()
     callback = functools.partial(connection_ready, sock)
     io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
