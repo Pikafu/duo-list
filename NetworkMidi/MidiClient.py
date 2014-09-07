@@ -11,14 +11,13 @@ import socket
 from time import sleep
 
 def prepare_midi():
+    # stream.write(b"I HATE YOU\r\n")
     while True:
         msg, delta_time = localmidi.MIDI_IN_CONN.get_message()
-        0
-
         if msg is not None and msg[0] is not localmidi.SYSEX_MSG:
             print(msg)
             #m = bytearray(msg)
-            #stream.write(m)
+            stream.write(b'got midi?')
 
 
 #def on_headers(data):
