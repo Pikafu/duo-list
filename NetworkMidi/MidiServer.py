@@ -17,7 +17,8 @@ from tornado.ioloop import IOLoop
 
 
 class MidiTCPServer(TCPServer):
-    """ Override handle_stream to initialize a connection. """
+    """ TCP server sets up an IOStream. Override handle_stream
+        and pass these onto the connection handler. """
     def handle_stream(self, stream, address):
         print("New connection from:", address, stream)
         MidiConnectionHandler(stream, address)
@@ -38,15 +39,15 @@ class MidiConnectionHandler(object):
 
     def _read(self):
         self._stream.read_until(b'\n', callback=self._broadcast)
- 
+
+    def send_message(self, data):
+        self._stream.write(data)
+
     def _broadcast(self, data):
         print("User played:", data[:-1], self._address)
         for conn in MidiConnectionHandler.clients:
             conn.send_message(data)
         self._read()
- 
-    def send_message(self, data):
-        self._stream.write(data)
  
     def on_close(self):
         print("A user has left .", self._address)
