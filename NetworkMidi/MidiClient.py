@@ -15,7 +15,7 @@ def prepare_midi():
         msg, delta_time = localmidi.MIDI_IN_CONN.get_message()
         if msg is not None and msg[0] is not localmidi.SYSEX_MSG:
             print(msg)
-            stream.write(bytes(msg))
+            stream.write(bytes(msg) + '\n'.encode())
             #stream.read_bytes(num_bytes=16, partial=True, callback=print_from)
 
 def print_from(data):
