@@ -35,6 +35,7 @@ class MidiConnectionHandler(object):
         self._localmidi.setup_local_midi()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream = IOStream(s)
+        self.stream.set_close_callback(self.on_disconnect)
         #IOLoop.instance().start()
         print("started")
         return
@@ -72,6 +73,10 @@ class MidiConnectionHandler(object):
             if msg is not None and msg[0] is not self._localmidi.SYSEX_MSG:
                 yield stream.write(bytes(msg) + '\n'.encode())
                 print("sent midi packet")
+
+    def on_disconnect(self):
+        print("Disconnected client: ", self._host, self._port)
+        self._localmidi.cleanup_ports()
 
 #def on_headers(data):
 #    print("Received ", data)
