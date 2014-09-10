@@ -39,7 +39,7 @@ class MidiConnectionHandler(object):
         MidiConnectionHandler.clients.add(self)
         self._stream = stream
         self._address = address
-        self._stream.set_close_callback(self.on_close)
+        self._stream.set_close_callback(self.on_disconnect)
         #self._read()
 
     @coroutine
@@ -59,7 +59,7 @@ class MidiConnectionHandler(object):
             pass
         return
 
-    def on_close(self):
+    def on_disconnect(self):
         print("A user has left .", self._address)
         MidiConnectionHandler.clients.remove(self)
 
