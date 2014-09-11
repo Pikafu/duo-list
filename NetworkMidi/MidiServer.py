@@ -18,6 +18,7 @@ from tornado.tcpserver import TCPServer
 from tornado.ioloop import IOLoop
 from tornado.gen import coroutine
 from tornado.iostream import StreamClosedError
+from time import sleep
 
 
 class MidiTCPServer(TCPServer):
@@ -46,18 +47,21 @@ class MidiConnectionHandler(object):
     def on_connect(self):
         print("A new user has joined from: ", self._address)
         yield self.broadcast()
-        return
 
     @coroutine
     def broadcast(self):
         try:
             while True:
-                m = yield self._stream.read_until(b'\n')
-                print(m)
-                yield self._stream.write(m[:-1])
+                #m = yield self._stream.read_until(b'\n')
+                #print("Received from client: ", m)
+                #yield self._stream.write(m[:-1])
+                test = [144, 46, 40]
+                rx = bytes(test) + '\n'.encode()
+                yield self._stream.write(rx)
+                sleep(0.5)
+                print('sending hello')
         except StreamClosedError:
             pass
-        return
 
     def on_disconnect(self):
         print("A user has left .", self._address)

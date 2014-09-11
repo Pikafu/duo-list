@@ -44,10 +44,11 @@ class MidiConnectionHandler(object):
     @coroutine
     def start(self):
         s = yield self.stream.connect((EC2Server.HOST, EC2Server.PORT))
-        yield self._poll_from_keyboard(s)
+        print("In start")
+        #yield [self._poll_from_keyboard(s), self.read()]
         yield self.read()
         #self._poll_from_keyboard()
-        return
+        #return
 
     # On read:
     # Send to keyboard
@@ -55,8 +56,14 @@ class MidiConnectionHandler(object):
 
     @coroutine
     def read(self):
-        rx = yield self.stream.read_until(b'\n')
-        print("received from server: ", rx)
+        try:
+            while True:
+                msg = yield self.stream.read_until(b'\n')
+                print("received from server: ", msg[:-1])
+                m = memoryview(msg[:-1]).tolist()
+                self._localmidi.MIDI_OUT_CONN.send_message(m)
+        except StreamClosedError:
+            pass
 
     def _send_to_keyboard(self, data):
         """ Received data is in bytes so need to convert to rtmidi tuple format. """
