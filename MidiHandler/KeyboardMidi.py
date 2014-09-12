@@ -63,13 +63,16 @@ class LocalMidi:
                 try:
                     self.MIDI_IN_CONN.close_port(port_in)
                 except ValueError:
+                    self.MIDI_IN_CONN = None
                     print('Could not open port ' + port_in.decode())
                 else:
                     print('Closed ' + port_in.decode())
+
         for port_out in self.MIDI_OUT_CONN.ports:
             if port_out.startswith(self.EMU.encode()):
                 try:
                     self.MIDI_OUT_CONN.close_port(port_out)
+                    self.MIDI_OUT_CONN = None
                 except ValueError:
                     print('Could not close port ' + port_out.decode())
                 else:
