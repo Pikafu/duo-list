@@ -43,11 +43,10 @@ class MidiConnectionHandler(object):
 
     @coroutine
     def start(self):
-        s = yield self.stream.connect((EC2Server.HOST, EC2Server.PORT))
+        yield self.stream.connect((EC2Server.HOST, EC2Server.PORT))
         print("In start")
-        #yield [self._poll_from_keyboard(s), self.read()]
-        yield self.read()
-        #self._poll_from_keyboard()
+        yield self._send_and_receive()
+        #yield self._poll_from_keyboard()
         #return
 
     # On read:
@@ -55,30 +54,41 @@ class MidiConnectionHandler(object):
     # Poll for midi runs in the background and writes
 
     @coroutine
-    def read(self):
+    def _send_and_receive(self):
         try:
             while True:
+                print("polling to send: ")
+                remote_rx = yield self.stream.read_until(b'\n')
+                m = memoryview(remote_rx[:-1]).tolist()
+                print("received ", remote_rx[:-1], " and converted to ", m)
+                #self._localmidi.MIDI_OUT_CONN.send_message(m)
+                local_rx, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
+                if local_rx is not None and local_rx[0] is not self._localmidi.SYSEX_MSG:
+                    yield self.stream.write(bytes(local_rx) + '\n'.encode())  
+                    print("sent midi packet ", bytes(local_rx) + '\n'.encode())
+        except StreamClosedError:
+            pass
+	
+    @coroutine
+    def _send_to_keyboard(self):
+        try:
+            while True:
+                print("polling to send: ")
                 msg = yield self.stream.read_until(b'\n')
-                print("received from server: ", msg[:-1])
                 m = memoryview(msg[:-1]).tolist()
-                self._localmidi.MIDI_OUT_CONN.send_message(m)
+                print("received ", msg[:-1], " and converted to ", m)
+                #self._localmidi.MIDI_OUT_CONN.send_message(m)
         except StreamClosedError:
             pass
 
-    def _send_to_keyboard(self, data):
-        """ Received data is in bytes so need to convert to rtmidi tuple format. """
-        m = memoryview(data).tolist()
-        self._localmidi.MIDI_OUT_CONN.send_message(m)
-        #self._poll_from_keyboard()
-
     @coroutine
-    def _poll_from_keyboard(self, stream):
+    def _poll_from_keyboard(self):
         """ Polls the connected MIDI device for incoming data, then sends it. """
-        print("polling for midi: ")
         while True:
             msg, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
             if msg is not None and msg[0] is not self._localmidi.SYSEX_MSG:
-                yield stream.write(bytes(msg) + '\n'.encode())
+                print("Got note")
+                yield self.stream.write(bytes(msg) + '\n'.encode())
                 print("sent midi packet")
 
     def on_disconnect(self):
