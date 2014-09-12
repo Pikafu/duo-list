@@ -68,7 +68,7 @@ class MidiConnectionHandler(object):
                     print("sent midi packet ", bytes(local_rx) + '\n'.encode())
         except StreamClosedError:
             pass
-	
+
     @coroutine
     def _send_to_keyboard(self):
         try:

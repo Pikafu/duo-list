@@ -50,16 +50,18 @@ class MidiConnectionHandler(object):
 
     @coroutine
     def broadcast(self):
+        """ When receiving a message, write back to all clients
+            except the one connected. """
         try:
             while True:
-                #m = yield self._stream.read_until(b'\n')
-                #print("Received from client: ", m)
-                #yield self._stream.write(m[:-1])
-                test = [144, 46, 40]
-                rx = bytes(test) + '\n'.encode()
-                yield self._stream.write(rx)
-                sleep(0.5)
-                print('sending hello')
+                m = yield self._stream.read_until(b'\n')
+                print("Received from client: ", m)
+                yield self._stream.write(m)
+                #yield self._stream.write(b'HELLO\n')
+                #test = [144, 44, 40]
+                #rx = bytes(test) + '\n'.encode()
+                #yield self._stream.write(rx)
+                #sleep(0.5)
         except StreamClosedError:
             pass
 
