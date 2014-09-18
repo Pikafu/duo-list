@@ -6,9 +6,11 @@ import sys
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from MidiHandler.KeyboardMidi import LocalMidi
+from MidiHandler.keyboardmidi import LocalMidi
 from NetworkMidi.EC2 import EC2Server
-from tornado.tcpclient import TCPClient
+from multiprocessing import Queue
+from threading import Thread
+
 from tornado.ioloop import IOLoop
 from tornado.iostream import IOStream
 from tornado.gen import coroutine
@@ -19,12 +21,12 @@ class MidiTCPClient():
     def __init__(self, host, port):
         self.host = host
         self.port = port
+        self.keyboard_listener = Queue()
 
-    @coroutine
     def connect(self):
         conn = MidiConnectionHandler(self.host, self.port)
         print("Connected to: ", self.host, self.port)
-        yield conn.start()
+        conn.start()
 
 
 class MidiConnectionHandler(object):
@@ -41,43 +43,25 @@ class MidiConnectionHandler(object):
         return
         #self.start()
 
-    @coroutine
     def start(self):
-        yield self.stream.connect((EC2Server.HOST, EC2Server.PORT))
+        self.stream.connect((EC2Server.HOST, EC2Server.PORT))
         print("In start")
-        yield self._send_and_receive()
-        #yield self._poll_from_keyboard()
-        #return
-
-    # On read:
-    # Send to keyboard
-    # Poll for midi runs in the background and writes
-
-    @coroutine
-    def _send_and_receive(self):
-        try:
-            while True:
-                print("polling to send: ")
-                remote_rx = yield self.stream.read_until(b'\n')
-                m = memoryview(remote_rx[:-1]).tolist()
-                print("received ", remote_rx[:-1], " and converted to ", m)
-                #self._localmidi.MIDI_OUT_CONN.send_message(m)
-                local_rx, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
-                if local_rx is not None and local_rx[0] is not self._localmidi.SYSEX_MSG:
-                    yield self.stream.write(bytes(local_rx) + '\n'.encode())  
-                    print("sent midi packet ", bytes(local_rx) + '\n'.encode())
-        except StreamClosedError:
-            pass
+        Thread(target=self._send_to_keyboard, args=()).start()
+        Thread(target=self._poll_from_keyboard, args=()).start()
 
     @coroutine
     def _send_to_keyboard(self):
         try:
             while True:
-                print("polling to send: ")
-                msg = yield self.stream.read_until(b'\n')
-                m = memoryview(msg[:-1]).tolist()
-                print("received ", msg[:-1], " and converted to ", m)
-                #self._localmidi.MIDI_OUT_CONN.send_message(m)
+                msg_bytes = yield self.stream.read_until(b'\n')
+                msg = memoryview(msg_bytes[:-1]).tolist()
+                print("received ", msg_bytes, " and converted to ", msg)
+                msg_type = self._localmidi.get_msg_type(msg[0])
+                if msg_type == self._localmidi.ON_OFF:
+                    self._localmidi.MIDI_OUT_CONN.send_message([msg[0], msg[1] + 3, msg[2]])
+                else:
+                    self._localmidi.MIDI_OUT_CONN.send_message(msg)
+
         except StreamClosedError:
             pass
 
@@ -95,13 +79,6 @@ class MidiConnectionHandler(object):
         print("Disconnected client: ", self._host, self._port)
         self._localmidi.cleanup_ports()
 
-#def on_headers(data):
-#    print("Received ", data)
-
-#    def on_body(data):
-#        print(data)
-#        stream.close()
-#        tornado.ioloop.IOLoop.instance().stop()
 
 if __name__ == "__main__":
     m = MidiTCPClient(EC2Server.HOST, EC2Server.PORT)
