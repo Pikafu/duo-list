@@ -49,8 +49,8 @@ class MidiConnectionHandler(object):
     @coroutine
     def on_connect(self):
         print("A new user has joined from: ", self._address)
-        #yield self.broadcast()
-        yield self.send_test()
+        yield self.broadcast()
+        #yield self.send_test()
 
     @coroutine
     def broadcast(self):
@@ -74,8 +74,9 @@ class MidiConnectionHandler(object):
             while True:
                 test = [144, 44, 40]
                 rx = bytes(test) + '\n'.encode()
+                print(rx)
                 yield self._stream.write(rx)
-                sleep(0.5)
+                sleep(0.2)
         except StreamClosedError:
             pass
 
