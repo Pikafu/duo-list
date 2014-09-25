@@ -1,7 +1,7 @@
 """ Verifies local MIDI receive/transmit """
 __author__ = 'John Fu, 2014.'
 
-from MidiHandler.KeyboardMidi import LocalMidi
+from MidiHandler.keyboardmidi import LocalMidi
 
 if __name__ == "__main__":
     localmidi = LocalMidi()
