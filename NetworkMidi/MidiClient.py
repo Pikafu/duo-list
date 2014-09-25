@@ -8,7 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from MidiHandler.keyboardmidi import LocalMidi
 from NetworkMidi.EC2 import EC2Server
-from multiprocessing import Queue
+from queue import Queue
 from threading import Thread
 
 from tornado.ioloop import IOLoop
@@ -42,31 +42,30 @@ class MidiConnectionHandler(object):
 
     @coroutine
     def start(self):
-        print("start called")
         yield self.stream.connect((self._host, self._port))   # This returns a future so need @coroutine decorator
         print("Connected to: ", self._host, self._port)
-
         Thread(target=self.listen_to_keyboard, args=()).start()
         Thread(target=self.dispatch_to_server, args=()).start()
-
         Thread(target=self.listen_to_server, args=()).start()
         Thread(target=self.dispatch_to_keyboard, args=()).start()
 
     def listen_to_keyboard(self):
         """ Thread for listening to output from the keyboard and putting it into the keyboard listener queue. """
         while True:
-            rtmidi_msg, time = self._localmidi.MIDI_IN_CONN.get_message()
-            if rtmidi_msg is not None and rtmidi_msg[0] is not self._localmidi.SYSEX_MSG:     # Do not store SYSEX messages
-                self.keyboard_listener.put(rtmidi_msg)
-                print(rtmidi_msg)
+            rtmidi_msg, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
+            if rtmidi_msg is not None:
+                msg_type = self._localmidi.get_msg_type(rtmidi_msg)
+                if msg_type == self._localmidi.ON or msg_type == self._localmidi.OFF or msg_type == self._localmidi.C_CHG:
+                    #print(rtmidi_msg)
+                    self.keyboard_listener.put(bytes(rtmidi_msg))
 
     @coroutine
     def dispatch_to_server(self):
         """ Thread for retrieving notes from the keyboard listener queue and sending them to the server. """
         while True:
             if not self.keyboard_listener.empty():
-                rtmidi_msg = self.keyboard_listener.get()
-                yield self.stream.write(bytes(rtmidi_msg) + b'\n')     # Encode and concat with \n
+                rtmidi_msg_bytes = self.keyboard_listener.get() + b'\n'  # Encode for server's read_until method
+                yield self.stream.write(rtmidi_msg_bytes)
 
     @coroutine
     def listen_to_server(self):
@@ -76,16 +75,32 @@ class MidiConnectionHandler(object):
             self.server_listener.put(msg_bytes)
 
     def dispatch_to_keyboard(self):
-        """ Thread for retrieving input from tje server listener queue and sending it to the keyboard. """
+        """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
         while True:
             if not self.server_listener.empty():
-                msg_bytes = self.server_listener.get()
-                msg = memoryview(msg_bytes[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
-                self._localmidi.MIDI_OUT_CONN.send_message(msg)
+                #msg_bytes = self.server_listener.get()
+                msg_list = self.queue_getall(self.server_listener)
+                print(msg_list)
+                # Play chords
+                for m in msg_list:
+                    msg = memoryview(m[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
+                    self._localmidi.MIDI_OUT_CONN.send_message(msg)
 
     def on_disconnect(self):
         print("Disconnected client: ", self._host, self._port)
         self._localmidi.cleanup_ports()
+
+    def queue_getall(self, q):
+        items = []
+        maxitems = 20
+        for num_items_retrieved in range(0, maxitems):
+            try:
+                if num_items_retrieved == maxitems:
+                    break
+                items.append(q.get_nowait())
+            except Exception as e:
+                break
+        return items
 
 
 if __name__ == "__main__":
