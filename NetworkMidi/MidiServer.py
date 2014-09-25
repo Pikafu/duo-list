@@ -27,7 +27,7 @@ class MidiTCPServer(TCPServer):
     """
     @coroutine
     def handle_stream(self, stream, address):
-        print("New connection from:", address, stream)
+        print("New connection from:", address)
         conn = MidiConnectionHandler(stream, address)
         yield conn.on_connect()
         print(len(MidiConnectionHandler.clients), " clients connected")
@@ -37,52 +37,48 @@ class MidiConnectionHandler(object):
     """ This class handles connections to the server and is instantiated
         for every connection from a client.
     """
-    clients = set()
+    clients = dict()    # key:value => client:address
 
     def __init__(self, stream, address):
-        MidiConnectionHandler.clients.add(self)
-        self._stream = stream
-        self._address = address
-        self._stream.set_close_callback(self.on_disconnect)
-        #self._read()
+        self.stream = stream
+        self.address = address
+        self.stream.set_close_callback(self.on_disconnect)
+        MidiConnectionHandler.clients[self] = self.address
 
     @coroutine
     def on_connect(self):
-        print("A new user has joined from: ", self._address)
+        print("A new user has joined from: ", self.address)
         yield self.broadcast()
         #yield self.send_test()
 
     @coroutine
     def broadcast(self):
-        """ When receiving a message, write back to all clients
-            except the one connected.
-        """
+        """ Send other clients messages from this client """
         try:
             while True:
-                m = yield self._stream.read_until(delimiter=b'\n')
-                print("Received from client: ", m)
-                yield self._stream.write(m)
+                m = yield self.stream.read_until(delimiter=b'\n')
+                print("Received from client: ", self.address, m)
+                for client in MidiConnectionHandler.clients:
+                    if client is not self:
+                        yield client.stream.write(m)
         except StreamClosedError:
             pass
 
     @coroutine
     def send_test(self):
-        """ When receiving a message, write back to all clients
-            except the one connected.
-        """
         try:
             while True:
                 test = [144, 44, 40]
                 rx = bytes(test) + '\n'.encode()
                 print(rx)
-                yield self._stream.write(rx)
+                yield self.stream.write(rx)
                 sleep(0.2)
         except StreamClosedError:
             pass
 
     def on_disconnect(self):
-        print("A user has left .", self._address)
-        MidiConnectionHandler.clients.remove(self)
+        print("A user has left .", self.address)
+        del MidiConnectionHandler.clients[self]
 
  
 if __name__ == '__main__':
