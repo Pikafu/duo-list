@@ -7,6 +7,8 @@ import rtmidi_python as rtmidi
 class LocalMidi:
     def __init__(self):
         self.ON_OFF = 'Note ON/OFF'
+        self.ON = 'Note ON'
+        self.OFF = 'Note OFF'
         self.C_CHG = 'Control Change'
         self.P_CHG = 'Program Change'
         self.P_BEND_CHG = 'Pitch Bend Change'
@@ -22,11 +24,16 @@ class LocalMidi:
         self.MIDI_OUT_CONN = rtmidi.MidiOut()
         self.MIDI_IN_CONN = rtmidi.MidiIn()
 
-    def get_msg_type(self, status):
+    def get_msg_type(self, msg):
         """ Reads the status int (from an rtmidi message).
             If not a system exclusive message, return the type. Otherwise, return True. """
+        status = msg[0]
+        velocity = msg[2]
         if status in self.ON_OFF_RANGE:
-            return self.ON_OFF
+            if status in self.ON_OFF_RANGE[0:15] or velocity == 0:
+                return self.OFF
+            else:
+                return self.ON
         elif status in self.C_CHG_RANGE:
             return self.C_CHG
         elif status in self.P_CHG_RANGE:
