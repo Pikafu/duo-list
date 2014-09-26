@@ -1,4 +1,9 @@
-""" Implements client functions. """
+""" IOStream based TCP client using Threads and Queues to exchange MIDI packets
+    to and from the connected hardware. Thank you
+
+        niltoid -       http://niltoid.com/blog/raspberry-pi-arduino-tornado/
+
+    for inspiring the Queue / Thread based approach. """
 __author__ = 'John Fu, 2014.'
 
 import os

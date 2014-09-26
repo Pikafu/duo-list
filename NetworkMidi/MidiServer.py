@@ -1,6 +1,6 @@
 """ IOStream based TCP server, along with connection handler methods.
-    Uses co-routines as opposed to callbacks for simplicity of code.
-    Huge thank you and credit goes to
+    Uses co-routines as opposed to callbacks for simplicity.
+    Huge thank you goes to
 
         XStar -         http://w.gdu.me/wiki/Python/Python_socket.html
         picomancer -    https://github.com/picomancer/echoserver/blob/d590b375304ced9bc0609b85270491f58eb6d788/echoserver.py
@@ -48,12 +48,12 @@ class MidiConnectionHandler(object):
     @coroutine
     def on_connect(self):
         print("A new user has joined from: ", self.address)
-        yield self.broadcast()
-        #yield self.send_test()
+        #yield self.broadcast()
+        yield self.echo()
 
     @coroutine
     def broadcast(self):
-        """ Send other clients messages from this client """
+        """ Send other clients messages from this client. """
         try:
             while True:
                 m = yield self.stream.read_until(delimiter=b'\n')
@@ -61,6 +61,16 @@ class MidiConnectionHandler(object):
                 for client in MidiConnectionHandler.clients:
                     if client is not self:
                         yield client.stream.write(m)
+        except StreamClosedError:
+            pass
+
+    @coroutine
+    def echo(self):
+        """ Echo back to connected client. """
+        try:
+            while True:
+                m = yield self.stream.read_until(delimiter=b'\n')
+                yield self.stream.write(m)
         except StreamClosedError:
             pass
 
