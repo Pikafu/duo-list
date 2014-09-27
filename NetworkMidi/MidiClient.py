@@ -53,6 +53,7 @@ class MidiConnectionHandler(object):
         Thread(target=self.dispatch_to_server, args=()).start()
         Thread(target=self.listen_to_server, args=()).start()
         Thread(target=self.dispatch_to_keyboard, args=()).start()
+        #Thread(target=self.dispatch_integrated, args=()).start()
 
     def listen_to_keyboard(self):
         """ Thread for listening to output from the keyboard and putting it into the keyboard listener queue. """
@@ -88,18 +89,18 @@ class MidiConnectionHandler(object):
                 m = msg_bytes[:-1]
                 self._localmidi.MIDI_OUT_CONN.send_message(m)
 
-    def dispatch_chords(self):
+    def dispatch_to_keyboard(self):
         """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
         while True:
             if not self.server_listener.empty():
-                msg_list = self.queue_getall(self.server_listener)
-                print(msg_list)
+                msg_list = self.get_chord(self.server_listener)
+                # print(msg_list)
                 # Play chords
                 for m in msg_list:
                     msg = memoryview(m[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
                     self._localmidi.MIDI_OUT_CONN.send_message(msg)
 
-    def queue_getall(self,q):
+    def get_chord(self, q):
         chord = []
         max_notes = 20
         r = range(0, max_notes)
@@ -112,7 +113,7 @@ class MidiConnectionHandler(object):
                 break
         return chord
 
-    def dispatch_to_keyboard(self):
+    def dispatch_integrated(self):
         """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
         chord = []
         max_notes = 20
@@ -129,7 +130,7 @@ class MidiConnectionHandler(object):
             for note in chord:
                 msg = memoryview(note[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
                 self._localmidi.MIDI_OUT_CONN.send_message(msg)
-            items = []
+            chord = []
 
     def on_disconnect(self):
         print("Disconnected client: ", self._host, self._port)
