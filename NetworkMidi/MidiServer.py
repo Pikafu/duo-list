@@ -48,8 +48,8 @@ class MidiConnectionHandler(object):
     @coroutine
     def on_connect(self):
         print("A new user has joined from: ", self.address)
-        #yield self.broadcast()
-        yield self.echo()
+        yield self.broadcast()
+        #yield self.echo()
 
     @coroutine
     def broadcast(self):

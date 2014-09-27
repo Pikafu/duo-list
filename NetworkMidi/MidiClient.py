@@ -20,7 +20,7 @@ from tornado.ioloop import IOLoop
 from tornado.iostream import IOStream
 from tornado.gen import coroutine
 from tornado.iostream import StreamClosedError
-from time import sleep
+from time import sleep, clock
 
 
 class MidiTCPClient():
@@ -41,9 +41,9 @@ class MidiConnectionHandler(object):
         self.server_listener = Queue()
         self._localmidi = LocalMidi()
         self._localmidi.setup_local_midi()
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream = IOStream(s)
+        self.stream = IOStream(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
         self.stream.set_close_callback(self.on_disconnect)
+        self.timer = 0
 
     @coroutine
     def start(self):
@@ -59,6 +59,7 @@ class MidiConnectionHandler(object):
         while True:
             rtmidi_msg, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
             if rtmidi_msg is not None:
+                self.timer = clock()
                 msg_type = self._localmidi.get_msg_type(rtmidi_msg)
                 if msg_type == self._localmidi.ON or msg_type == self._localmidi.OFF or msg_type == self._localmidi.C_CHG:
                     #print(rtmidi_msg)
@@ -79,11 +80,18 @@ class MidiConnectionHandler(object):
             msg_bytes = yield self.stream.read_until(delimiter=b'\n')
             self.server_listener.put(msg_bytes)
 
-    def dispatch_to_keyboard(self):
+    def dispatch_basic(self):
         """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
         while True:
             if not self.server_listener.empty():
-                #msg_bytes = self.server_listener.get()
+                msg_bytes = self.server_listener.get()
+                m = msg_bytes[:-1]
+                self._localmidi.MIDI_OUT_CONN.send_message(m)
+
+    def dispatch_chords(self):
+        """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
+        while True:
+            if not self.server_listener.empty():
                 msg_list = self.queue_getall(self.server_listener)
                 print(msg_list)
                 # Play chords
@@ -91,21 +99,41 @@ class MidiConnectionHandler(object):
                     msg = memoryview(m[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
                     self._localmidi.MIDI_OUT_CONN.send_message(msg)
 
+    def queue_getall(self,q):
+        chord = []
+        max_notes = 20
+        r = range(0, max_notes)
+        for notes_retrieved in r:
+            try:
+                if notes_retrieved == max_notes:
+                    break
+                chord.append(q.get_nowait())
+            except Exception as e:
+                break
+        return chord
+
+    def dispatch_to_keyboard(self):
+        """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
+        chord = []
+        max_notes = 20
+        r = range(0, max_notes)
+        while True:
+            current_time = clock()
+            for notes_retrieved in r:
+                try:
+                    if notes_retrieved == max_notes:
+                        break
+                    chord.append(self.server_listener.get_nowait())
+                except Exception as e:
+                    break
+            for note in chord:
+                msg = memoryview(note[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
+                self._localmidi.MIDI_OUT_CONN.send_message(msg)
+            items = []
+
     def on_disconnect(self):
         print("Disconnected client: ", self._host, self._port)
         self._localmidi.cleanup_ports()
-
-    def queue_getall(self, q):
-        items = []
-        maxitems = 20
-        for num_items_retrieved in range(0, maxitems):
-            try:
-                if num_items_retrieved == maxitems:
-                    break
-                items.append(q.get_nowait())
-            except Exception as e:
-                break
-        return items
 
 
 if __name__ == "__main__":
