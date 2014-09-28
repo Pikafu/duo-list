@@ -3,7 +3,7 @@
 
         niltoid -       http://niltoid.com/blog/raspberry-pi-arduino-tornado/
 
-    for inspiring the Queue / Thread based approach. """
+    for inspiring the Queue based approach for passing information between threads. """
 __author__ = 'John Fu, 2014.'
 
 import os
@@ -25,13 +25,11 @@ from time import sleep, clock
 
 class MidiTCPClient():
     def __init__(self, host, port):
-        self.host = host
-        self.port = port
+        self.conn = MidiConnectionHandler(host, port)
 
     @coroutine
     def connect(self):
-        conn = MidiConnectionHandler(self.host, self.port)
-        yield conn.start()
+        yield self.conn.start()
 
 class MidiConnectionHandler(object):
     def __init__(self, host, port):
