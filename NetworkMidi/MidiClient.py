@@ -47,88 +47,70 @@ class MidiConnectionHandler(object):
     def start(self):
         yield self.stream.connect((self._host, self._port))   # This returns a future so need @coroutine decorator
         print("Connected to: ", self._host, self._port)
-        Thread(target=self.listen_to_keyboard, args=()).start()
-        Thread(target=self.dispatch_to_server, args=()).start()
-        Thread(target=self.listen_to_server, args=()).start()
-        Thread(target=self.dispatch_to_keyboard, args=()).start()
-        #Thread(target=self.dispatch_integrated, args=()).start()
+        Thread(target=self.listen_keyboard, args=()).start()
+        Thread(target=self.dispatch_server, args=()).start()
+        Thread(target=self.listen_server, args=()).start()
+        #Thread(target=self.dispatch_keyboard, args=()).start()
+        Thread(target=self.dispatch_keyboard_chords, args=()).start()
 
-    def listen_to_keyboard(self):
+    def listen_keyboard(self):
         """ Thread for listening to output from the keyboard and putting it into the keyboard listener queue. """
+        # Import globals to local scope for faster looping
+        ON = self._localmidi.ON
+        OFF = self._localmidi.OFF
+        SUS = self._localmidi.SUS
         while True:
             rtmidi_msg, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
             if rtmidi_msg is not None:
-                self.timer = clock()
                 msg_type = self._localmidi.get_msg_type(rtmidi_msg)
-                if msg_type == self._localmidi.ON or msg_type == self._localmidi.OFF or msg_type == self._localmidi.C_CHG:
-                    #print(rtmidi_msg)
-                    self.keyboard_listener.put(bytes(rtmidi_msg))
+                if msg_type == ON or msg_type == OFF or msg_type == SUS:
+                    self.keyboard_listener.put(bytes(rtmidi_msg)+b'\n')     # Encode for server's read_until method
 
     @coroutine
-    def dispatch_to_server(self):
+    def dispatch_server(self):
         """ Thread for retrieving notes from the keyboard listener queue and sending them to the server. """
         while True:
             if not self.keyboard_listener.empty():
-                rtmidi_msg_bytes = self.keyboard_listener.get() + b'\n'  # Encode for server's read_until method
+                rtmidi_msg_bytes = self.keyboard_listener.get()
                 yield self.stream.write(rtmidi_msg_bytes)
 
     @coroutine
-    def listen_to_server(self):
+    def listen_server(self):
         """ Thread for listening to output from the server and putting it into the server listener queue. """
         while True:
             msg_bytes = yield self.stream.read_until(delimiter=b'\n')
-            self.server_listener.put(msg_bytes)
+            self.server_listener.put(msg_bytes[:-1])    # Strip \n
 
-    def dispatch_basic(self):
+    def dispatch_keyboard(self):
         """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
         while True:
             if not self.server_listener.empty():
                 msg_bytes = self.server_listener.get()
-                m = msg_bytes[:-1]
-                self._localmidi.MIDI_OUT_CONN.send_message(m)
+                print(msg_bytes)
+                self._localmidi.MIDI_OUT_CONN.send_message(msg_bytes)
 
-    def dispatch_to_keyboard(self):
+    def dispatch_keyboard_chords(self):
         """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
         while True:
             if not self.server_listener.empty():
-                msg_list = self.get_chord(self.server_listener)
+                msg_list = self.get_chord(self.server_listener, max_notes=10)
                 # print(msg_list)
                 # Play chords
-                for m in msg_list:
-                    msg = memoryview(m[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
+                for msg in msg_list:
                     self._localmidi.MIDI_OUT_CONN.send_message(msg)
 
-    def get_chord(self, q):
+    def get_chord(self, queue, max_notes):
+        """ Get up to max_notes midi packets from the queue. """
         chord = []
-        max_notes = 20
         r = range(0, max_notes)
         for notes_retrieved in r:
             try:
                 if notes_retrieved == max_notes:
                     break
-                chord.append(q.get_nowait())
+                chord.append(queue.get_nowait())
             except Exception as e:
-                break
+                pass
         return chord
-
-    def dispatch_integrated(self):
-        """ Thread for retrieving input from the server listener queue and sending it to the keyboard. """
-        chord = []
-        max_notes = 20
-        r = range(0, max_notes)
-        while True:
-            current_time = clock()
-            for notes_retrieved in r:
-                try:
-                    if notes_retrieved == max_notes:
-                        break
-                    chord.append(self.server_listener.get_nowait())
-                except Exception as e:
-                    break
-            for note in chord:
-                msg = memoryview(note[:-1]).tolist()  # Assuming contents of queue still have \n, strip them
-                self._localmidi.MIDI_OUT_CONN.send_message(msg)
-            chord = []
 
     def on_disconnect(self):
         print("Disconnected client: ", self._host, self._port)
