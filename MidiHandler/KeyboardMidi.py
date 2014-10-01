@@ -10,17 +10,21 @@ class LocalMidi:
         self.ON = 'Note ON'
         self.OFF = 'Note OFF'
         self.C_CHG = 'Control Change'
+        self.SUS = 'Sustain'
         self.P_CHG = 'Program Change'
         self.P_BEND_CHG = 'Pitch Bend Change'
         self.SYSEX_MSG = 'System Exclusive Message'
         self.EMU = 'E-MU'                           # Starting characters of MIDI to USB interface
+
         self.ON_OFF_RANGE = range(0x80, 0xA0)       # All possible MIDI note on/off channels
         self.C_CHG_RANGE = range(0xB0, 0xC0)        # Same for control change channels
         self.P_CHG_RANGE = range(0xC0, 0xD0)
         self.P_BEND_RANGE = range(0xE0, 0xF0)
+
+        self.NOTE_OFF_VELOCITY = 0
+        self.SUSTAIN_MSB = 0x40
         self.SYSEX_START = 0xF0
-        self.NORMAL_MAX_PAYLOAD = 3                 # Max payload size for note ON/OFF, control change, mode, and program change
-        self.SYSEX_MAX_PAYLOAD = 12                 # Max payload size for system exclusive messages
+
         self.MIDI_OUT_CONN = rtmidi.MidiOut()
         self.MIDI_IN_CONN = rtmidi.MidiIn()
 
@@ -28,13 +32,14 @@ class LocalMidi:
         """ Reads the status int (from an rtmidi message).
             If not a system exclusive message, return the type. Otherwise, return True. """
         status = msg[0]
-        velocity = msg[2]
         if status in self.ON_OFF_RANGE:
-            if status in self.ON_OFF_RANGE[0:15] or velocity == 0:
-                return self.OFF
-            else:
+            if not msg[2] == self.NOTE_OFF_VELOCITY:
                 return self.ON
+            else:
+                return self.OFF
         elif status in self.C_CHG_RANGE:
+            if msg[1] == self.SUSTAIN_MSB:
+                return self.SUS
             return self.C_CHG
         elif status in self.P_CHG_RANGE:
             return self.P_CHG
