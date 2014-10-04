@@ -57,7 +57,7 @@ class MidiConnectionHandler(object):
         try:
             while True:
                 m = yield self.stream.read_until(delimiter=b'\n')
-                print("Received from client: ", self.address, m)
+                #print("Received from client: ", self.address, m)
                 for client in MidiConnectionHandler.clients:
                     if client is not self:
                         yield client.stream.write(m)
