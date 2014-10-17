@@ -11,7 +11,7 @@ import sys
 import socket
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from MidiHandler.keyboardmidi import LocalMidi
+from MidiHandler.KeyboardMidi import LocalMidi
 from NetworkMidi.EC2 import EC2Server
 from queue import Queue
 from threading import Thread
