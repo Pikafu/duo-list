@@ -11,9 +11,10 @@ __author__ = 'John Fu, 2014.'
 
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from NetworkMidi.EC2 import EC2Server
+
 from tornado.tcpserver import TCPServer
 from tornado.ioloop import IOLoop
 from tornado.gen import coroutine
@@ -48,8 +49,8 @@ class MidiConnectionHandler(object):
     @coroutine
     def on_connect(self):
         print("A new user has joined from: ", self.address)
-        yield self.broadcast()
-        #yield self.echo()
+        # yield self.broadcast()
+        yield self.echo()
 
     @coroutine
     def broadcast(self):
@@ -70,6 +71,7 @@ class MidiConnectionHandler(object):
         try:
             while True:
                 m = yield self.stream.read_until(delimiter=b'\n')
+                # print("Received from client: ", m)
                 yield self.stream.write(m)
         except StreamClosedError:
             pass

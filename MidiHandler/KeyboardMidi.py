@@ -1,7 +1,7 @@
 """ Methods for local MIDI transmission and reception. """
 __author__ = 'John Fu, 2014.'
 
-import rtmidi_python as rtmidi
+import rtmidi
 
 
 class LocalMidi:
@@ -48,29 +48,33 @@ class LocalMidi:
         elif status is self.SYSEX_START:
             return self.SYSEX_MSG
 
+    # TO DO: PASS IN MIDI IN AND MIDI OUT AS LOCAL VARIABLES
     def setup_local_midi(self):
         """ Scans ports for E-MU MIDI to USB interface and then establishes
             bi-directional communication between the digital keyboard and computer. """
-        for port_in in self.MIDI_IN_CONN.ports:
-            if port_in.startswith(self.EMU.encode()):
+        avail_in = self.MIDI_IN_CONN.get_ports()
+        avail_out = self.MIDI_OUT_CONN.get_ports()
+
+        for port_in in avail_in:
+            if port_in.startswith(self.EMU):
                 try:
-                    self.MIDI_IN_CONN.open_port(port_in)
+                    self.MIDI_IN_CONN.open_port(avail_in.index(port_in))
                 except ValueError:
-                    print('Could not open port ' + port_in.decode())
+                    print('Could not open port ' + port_in)
                 else:
-                    print('Connected to ' + port_in.decode())
-        for port_out in self.MIDI_OUT_CONN.ports:
-            if port_out.startswith(self.EMU.encode()):
+                    print('Connected to ' + port_in)
+        for port_out in avail_out:
+            if port_out.startswith(self.EMU):
                 try:
-                    self.MIDI_OUT_CONN.open_port(port_out)
+                    self.MIDI_OUT_CONN.open_port(avail_out.index(port_out))
                 except ValueError:
-                    print('Could not open port ' + port_out.decode())
+                    print('Could not open port ' + port_out)
                 else:
-                    print('Connected to ' + port_out.decode())
+                    print('Connected to ' + port_out)
 
     def cleanup_ports(self):
         """ Closes all the input and output ports. """
         self.MIDI_IN_CONN.close_port()
-        self.MIDI_IN_CONN = None
+        del self.MIDI_IN_CONN
         self.MIDI_OUT_CONN.close_port()
-        self.MIDI_OUT_CONN = None
+        del self.MIDI_OUT_CONN

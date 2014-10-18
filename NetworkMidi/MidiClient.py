@@ -9,9 +9,10 @@ __author__ = 'John Fu, 2014.'
 import os
 import sys
 import socket
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from MidiHandler.KeyboardMidi import LocalMidi
+
 from NetworkMidi.EC2 import EC2Server
 from queue import Queue
 from threading import Thread
@@ -50,8 +51,8 @@ class MidiConnectionHandler(object):
         Thread(target=self.listen_keyboard, args=()).start()
         Thread(target=self.dispatch_server, args=()).start()
         Thread(target=self.listen_server, args=()).start()
-        #Thread(target=self.dispatch_keyboard, args=()).start()
-        Thread(target=self.dispatch_keyboard_chords, args=()).start()
+        Thread(target=self.dispatch_keyboard, args=()).start()
+        #Thread(target=self.dispatch_keyboard_chords, args=()).start()
 
     def listen_keyboard(self):
         """ Thread for listening to output from the keyboard and putting it into the keyboard listener queue. """
@@ -60,8 +61,10 @@ class MidiConnectionHandler(object):
         OFF = self._localmidi.OFF
         SUS = self._localmidi.SUS
         while True:
-            rtmidi_msg, delta_time = self._localmidi.MIDI_IN_CONN.get_message()
-            if rtmidi_msg is not None:
+            message = self._localmidi.MIDI_IN_CONN.get_message()
+            if message is not None:
+                rtmidi_msg, delta_time = message
+                # print(rtmidi_msg)
                 msg_type = self._localmidi.get_msg_type(rtmidi_msg)
                 if msg_type == ON or msg_type == OFF or msg_type == SUS:
                     self.keyboard_listener.put(bytes(rtmidi_msg)+b'\n')     # Encode for server's read_until method
@@ -72,6 +75,7 @@ class MidiConnectionHandler(object):
         while True:
             if not self.keyboard_listener.empty():
                 rtmidi_msg_bytes = self.keyboard_listener.get()
+                # print("dispatching to server: ", rtmidi_msg_bytes)
                 yield self.stream.write(rtmidi_msg_bytes)
 
     @coroutine
@@ -79,6 +83,7 @@ class MidiConnectionHandler(object):
         """ Thread for listening to output from the server and putting it into the server listener queue. """
         while True:
             msg_bytes = yield self.stream.read_until(delimiter=b'\n')
+            # print("got from server: ", msg_bytes)
             self.server_listener.put(msg_bytes[:-1])    # Strip \n
 
     def dispatch_keyboard(self):
@@ -86,7 +91,7 @@ class MidiConnectionHandler(object):
         while True:
             if not self.server_listener.empty():
                 msg_bytes = self.server_listener.get()
-                print(msg_bytes)
+                # print("To keyboard: ", msg_bytes)
                 self._localmidi.MIDI_OUT_CONN.send_message(msg_bytes)
 
     def dispatch_keyboard_chords(self):
@@ -121,3 +126,14 @@ if __name__ == "__main__":
     m = MidiTCPClient(EC2Server.HOST, EC2Server.PORT)
     m.connect()
     IOLoop.instance().start()
+    # try:
+        # m = MidiTCPClient(EC2Server.HOST, EC2Server.PORT)
+        # m.connect()
+        # IOLoop.instance().start()
+    # except KeyboardInterrupt as e:
+    #     print(e)
+    # finally:
+    #     print("Exit.")
+    #     m.conn._localmidi.MIDI_IN_CONN.close_port()
+    #     m.conn._localmidi.MIDI_OUT_CONN.close_port()
+    #     m.conn._localmidi.cleanup_ports()
