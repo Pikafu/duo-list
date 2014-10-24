@@ -72,9 +72,9 @@ class LocalMidi:
                 else:
                     print('Connected to ' + port_out)
 
-    def cleanup_ports(self):
+    def cleanup_ports(self, midiin, midiout):
         """ Closes all the input and output ports. """
-        self.MIDI_IN_CONN.close_port()
-        del self.MIDI_IN_CONN
-        self.MIDI_OUT_CONN.close_port()
-        del self.MIDI_OUT_CONN
+        midiin.close_port()
+        del midiin
+        midiout.close_port()
+        del midiout
